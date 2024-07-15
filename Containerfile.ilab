@@ -1,0 +1,32 @@
+###################################
+# Build llamma-cpp-py for image  #
+###################################
+
+FROM quay.io/stewhite/ubi9-cuda-py:latest-devel as ilab-build
+
+ARG INSTRUCTLAB_VERSION=0.17.1
+
+USER 1001
+
+RUN pip install --no-cache-dir --upgrade pip wheel setuptools && \
+    CMAKE_ARGS="-DLLAMA_CUDA=on -DGGML_BLAS=ON -DGGML_BLAS_VENDOR=OpenBLAS" \
+    GGML_CCACHE=OFF GGML_CUDA=1 CUDA_DOCKER_ARCH=all \
+    pip install --upgrade --verbose instructlab==${INSTRUCTLAB_VERSION} && \
+    # Fix permissions to support pip in Openshift environments \
+    chmod -R g+w /opt/app-root/lib/python3.11/site-packages && \
+    fix-permissions /opt/app-root -P
+
+##################
+# run container #
+##################
+
+FROM quay.io/stewhite/ubi9-cuda-py:latest as runtime-container
+
+COPY --from=ilab-build --chown=1001:0 /opt/app-root/lib64/python3.11/site-packages /opt/app-root/lib64/python3.11/site-packages
+COPY --from=ilab-build --chown=1001:0 /opt/app-root/bin /opt/app-root/bin
+
+USER 1001
+
+ENTRYPOINT ["ilab"]
+
+CMD ["--version"] 

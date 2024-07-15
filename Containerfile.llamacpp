@@ -1,0 +1,72 @@
+###################################
+# Build llamma-cpp-py for image  #
+###################################
+
+FROM quay.io/stewhite/ubi9-cuda-py:latest-devel as llama-cpp-build
+
+
+ARG LLAMA_CPP_PYTHON_VERSION=0.2.82
+# ARG LLAMA_CPP_VERSION=b3358
+
+USER 0
+
+# https://github.com/Gregory-Pereira/milvus/blob/rhel9-milvus/build/docker/milvus/rhel9/install-openblas.sh
+COPY install-openblas-dev.sh ./
+RUN sh ./install-openblas-dev.sh && rm ./install-openblas-dev.sh
+
+USER 1001
+
+################################
+# # Manual Install code pull   #
+# RUN git clone --depth 1 --branch v${LLAMA_CPP_PYTHON_VERSION} --recurse-submodules \
+#    https://github.com/abetlen/llama-cpp-python.git &&\
+#    cd llama-cpp-python/vendor/llama.cpp && \
+#    git checkout ${LLAMA_CPP_VERSION} 
+#  # required for direct updates to LLAMA_CPP_VERSION
+################################
+
+RUN pip install --no-cache-dir --upgrade pip wheel setuptools && \
+    # Turn off manual install \
+    # CMAKE_ARGS="-DLLAMA_CUDA=on" GGML_CCACHE=OFF GGML_CUDA=1 CUDA_DOCKER_ARCH=all \
+    # pip install --upgrade --verbose './llama-cpp-python[server]' && \
+    CMAKE_ARGS="-DGGML_CUDA=on -DLLAMA_BLAS=ON -DLLAMA_BLAS_VENDOR=OpenBLAS" \
+    GGML_CCACHE=OFF GGML_CUDA=1 CUDA_DOCKER_ARCH=all \
+    pip install --upgrade --verbose 'llama-cpp-python[server]~='"${LLAMA_CPP_PYTHON_VERSION}" && \
+    # Fix permissions to support pip in Openshift environments \
+    chmod -R g+w /opt/app-root/lib/python3.11/site-packages && \
+    fix-permissions /opt/app-root -P
+
+##################
+# run container #
+##################
+
+FROM quay.io/stewhite/ubi9-cuda-py:latest as runtime-container
+
+COPY --from=llama-cpp-build --chown=1001:0 /opt/app-root/lib64/python3.11/site-packages /opt/app-root/lib64/python3.11/site-packages
+
+ENV PORT=8000 \
+    GPU_LAYERS=100 \
+    CONTEXT_SIZE=16192 \
+    CHAT_FORMAT=chatml \
+    MODEL_FOLDER=/opt/app-root/data \
+    MODEL=granite-20b-code-instruct.Q4_K_M.gguf
+
+USER 0
+
+RUN dnf install -y openblas \
+    && dnf clean all \
+    && rm -rf /var/cache/yum/*
+
+USER 1001
+
+RUN mkdir ${MODEL_FOLDER} && chmod -R g+w ${MODEL_FOLDER} && fix-permissions /opt/app-root -P
+    
+VOLUME ["/opt/app-root/data"]
+
+EXPOSE 8000
+
+# ENTRYPOINT ["python3", "-m", "llama_cpp.server"]
+
+CMD python3 -m llama_cpp.server --host 0.0.0.0 --port ${PORT} \
+    --n_gpu_layers ${GPU_LAYERS} --chat_format ${CHAT_FORMAT} --n_ctx ${CONTEXT_SIZE} \
+    --model ${MODEL_FOLDER}/${MODEL}
