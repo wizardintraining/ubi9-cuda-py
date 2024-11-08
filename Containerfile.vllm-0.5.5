@@ -1,4 +1,4 @@
-FROM quay.io/stewhite/ubi9-cuda-py:latest-devel as vllm-install
+FROM quay.io/stewhite/ubi9-cuda-py:0.1.0-devel as vllm-install
 
 WORKDIR /opt/app-root/src
 
@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir -r requirements.txt && \
 # vLLM container #
 ##################
 
-FROM quay.io/stewhite/ubi9-cuda-py:latest as runtime-container
+FROM quay.io/stewhite/ubi9-cuda-py:0.1.0 as runtime-container
 
 WORKDIR /opt/app-root/src
 
