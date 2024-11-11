@@ -1,5 +1,5 @@
 # CUDA Devel image
-FROM quay.io/stewhite/ubi9-cuda-py:latest
+FROM quay.io/stewhite/ubi9-cuda-py:0.1.0
 
 USER 0
 
@@ -21,9 +21,9 @@ ENV NV_LIBNCCL_DEV_PACKAGE ${NV_LIBNCCL_DEV_PACKAGE_NAME}-${NV_LIBNCCL_DEV_PACKA
 ENV NV_CUDA_NSIGHT_COMPUTE_VERSION 12.4.1-1
 ENV NV_CUDA_NSIGHT_COMPUTE_DEV_PACKAGE cuda-nsight-compute-12-4-${NV_CUDA_NSIGHT_COMPUTE_VERSION}
 
-RUN dnf install -y \
+RUN dnf install -y --best --nodocs --setopt=install_weak_deps=False \
     make \
-    findutils \
+    openblas-devel \
     cuda-command-line-tools-12-4-${NV_CUDA_LIB_VERSION} \
     cuda-libraries-devel-12-4-${NV_CUDA_LIB_VERSION} \
     cuda-minimal-build-12-4-${NV_CUDA_LIB_VERSION} \

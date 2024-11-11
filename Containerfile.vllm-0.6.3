@@ -24,16 +24,18 @@ ENV MAX_JOBS=${max_jobs}
 ARG nvcc_threads=8
 ENV NVCC_THREADS=$nvcc_threads
 
-RUN pip install --no-cache-dir -r requirements.txt wheel && \
+RUN pip install -r requirements.txt && \
     rm -f requirements.txt && \
-    # Install flash-attn from PyPI \
-    pip install --no-cache-dir flash-attn~=2.5.9 --no-build-isolation && \
-    pip install --no-cache-dir vllm==0.6.3 vllm-flash-attn vllm-nccl-cu12 && \
+    pip install vllm==0.6.3 vllm-flash-attn vllm-nccl-cu12 && \
     # Correction for FIPS mode \
-    sed -i s/md5/sha1/g /opt/app-root/lib64/python3.11/site-packages/triton/runtime/jit.py && \
-    # Fix permissions to support pip in Openshift environments \
-    chmod -R g+w /opt/app-root/lib/python3.11/site-packages && \
+    sed -i s/md5/sha1/g /opt/app-root/lib64/python3.11/site-packages/triton/runtime/jit.py
+
+USER 0
+# Fix permissions to support pip in Openshift environments
+RUN chmod -R g+w /opt/app-root/lib/python3.11/site-packages && \
     fix-permissions /opt/app-root -P
+USER 1001
+
 
 ##################
 # vLLM container #
