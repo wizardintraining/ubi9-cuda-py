@@ -13,23 +13,27 @@ includes support for nvtx cudart nccl cuDNN cublas
 ## Manual builds - 
 ### Runtime
 ```sh
-podman build -f Containerfile.runtime -t quay.io/stewhite/ubi9-cuda-py:0.1.0 -t quay.io/stewhite/ubi9-cuda-py:latest
+podman build -f Containerfile.runtime -t quay.io/stewhite/ubi9-cuda-py:0.1.0
+podman tag quay.io/stewhite/ubi9-cuda-py:0.1.0 quay.io/stewhite/ubi9-cuda-py:latest
 podman push quay.io/stewhite/ubi9-cuda-py:0.1.0
 podman push quay.io/stewhite/ubi9-cuda-py:latest
 ```
 ### Devel
 ```sh
-podman build -f Containerfile.devel -t quay.io/stewhite/ubi9-cuda-py:0.1.0-devel -t quay.io/stewhite/ubi9-cuda-py:latest-devel
+podman build -f Containerfile.devel -t quay.io/stewhite/ubi9-cuda-py:0.1.0-devel
+podman tag quay.io/stewhite/ubi9-cuda-py:0.1.0-devel quay.io/stewhite/ubi9-cuda-py:latest-devel
 podman push quay.io/stewhite/ubi9-cuda-py:0.1.0-devel
 podman push quay.io/stewhite/ubi9-cuda-py:latest-devel
 ```
 ### vllm runtimes
 ```sh
-podman build -f Containerfile.vllm-0.5.5 -t quay.io/stewhite/ubi9-cuda-py:vllm-runtime-0.5.5 \
-    -t quay.io/stewhite/ubi9-cuda-py:vllm-runtime-v0.5
-podman build -f Containerfile.vllm-0.6.3 -t quay.io/stewhite/ubi9-cuda-py:vllm-runtime-0.6.3 \
-    -t quay.io/stewhite/ubi9-cuda-py:vllm-runtime-v0.6 \
-    -t quay.io/stewhite/ubi9-cuda-py:vllm-runtime-latest
+podman build -f Containerfile.vllm-0.5.5 -t quay.io/stewhite/ubi9-cuda-py:vllm-runtime-0.5.5
+podman tag quay.io/stewhite/ubi9-cuda-py:vllm-runtime-0.5.5 quay.io/stewhite/ubi9-cuda-py:vllm-runtime-v0.5
+
+podman build -f Containerfile.vllm-0.6.3 -t quay.io/stewhite/ubi9-cuda-py:vllm-runtime-0.6.3
+podman tag quay.io/stewhite/ubi9-cuda-py:vllm-runtime-0.6.3 quay.io/stewhite/ubi9-cuda-py:vllm-runtime-v0.6
+podman tag quay.io/stewhite/ubi9-cuda-py:vllm-runtime-0.6.3 quay.io/stewhite/ubi9-cuda-py:vllm-runtime-latest
+
 for i in vllm-runtime-0.5.5 vllm-runtime-v0.5 vllm-runtime-0.6.3 vllm-runtime-v0.6 vllm-runtime-latest; do
     podman push quay.io/stewhite/ubi9-cuda-py:${i}
 done
