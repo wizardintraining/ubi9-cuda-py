@@ -1,4 +1,4 @@
-FROM quay.io/stewhite/ubi9-cuda-py:0.1.0-devel as vllm-install
+FROM quay.io/stewhite/ubi9-cuda-py:0.1.1-devel as vllm-install
 
 WORKDIR /opt/app-root/src
 
@@ -22,7 +22,7 @@ USER 1001
 # vLLM container #
 ##################
 
-FROM quay.io/stewhite/ubi9-cuda-py:0.1.0 as runtime-container
+FROM quay.io/stewhite/ubi9-cuda-py:0.1.1 as runtime-container
 
 WORKDIR /opt/app-root/src
 

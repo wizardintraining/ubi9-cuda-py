@@ -1,5 +1,5 @@
 # CUDA Devel image
-FROM quay.io/stewhite/ubi9-cuda-py:0.1.0
+FROM quay.io/stewhite/ubi9-cuda-py:0.1.1
 
 USER 0
 

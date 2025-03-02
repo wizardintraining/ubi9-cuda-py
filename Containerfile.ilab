@@ -2,10 +2,10 @@
 # adapted from https://github.com/instructlab/instructlab/blob/main/containers/cuda/Containerfile
 ###################################
 ARG PYTHON_VERSION=3.11
-ARG INSTRUCTLAB_VERSION=0.20.1
+ARG INSTRUCTLAB_VERSION=0.24.1
 ARG INSTRUCTLAB_PKG="instructlab[cuda]"
 
-FROM quay.io/stewhite/ubi9-cuda-py:0.1.0-devel as ilab-build
+FROM quay.io/stewhite/ubi9-cuda-py:0.1.1-devel as ilab-build
 
 ENV INSTRUCTLAB_VERSION ${INSTRUCTLAB_VERSION}
 ENV INSTRUCTLAB_PKG ${INSTRUCTLAB_PKG}
@@ -37,15 +37,21 @@ RUN dnf install -y --nodocs --setopt=install_weak_deps=False \
 
 USER 1001
 
-RUN python3 -m venv --upgrade-deps ${APP_ROOT} \
-    # flash attn install with vllm sometimes fails \
-    && pip install torch==2.4.0 psutil \
-    && pip install --verbose flash_attn==2.6.3 --no-build-isolation
-    # && CMAKE_ARGS="-DLLAMA_CUDA=on -DGGML_BLAS=ON -DGGML_BLAS_VENDOR=OpenBLAS"
+# max jobs used by Ninja to build extensions
+ARG max_jobs=4
+ENV MAX_JOBS=${max_jobs}
+# number of threads used by nvcc
+ARG nvcc_threads=8
+ENV NVCC_THREADS=$nvcc_threads
 
-RUN CMAKE_ARGS="-DLLAMA_CUDA=on -DLLAMA_NATIVE=off" GGML_CCACHE=OFF CUDA_DOCKER_ARCH=all \
-    pip install --upgrade --verbose "instructlab[cuda]"==0.20.1 \
-    && pip install vllm@git+https://github.com/opendatahub-io/vllm@v0.6.2
+RUN python3 -m venv --upgrade-deps ${APP_ROOT} \
+    && pip install 'torch==2.5.1' psutil \
+    && pip install --verbose flash_attn --no-build-isolation
+
+RUN pip install 'vllm@git+https://github.com/opendatahub-io/vllm@v0.7.2.0'
+
+RUN CMAKE_ARGS="-DGGML_CUDA=on -DGGML_NATIVE=off" GGML_CCACHE=OFF CUDA_DOCKER_ARCH=all \
+    pip install --upgrade --verbose 'instructlab[cuda]==0.24.1'
 
 
 ##################

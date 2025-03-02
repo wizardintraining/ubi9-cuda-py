@@ -5,7 +5,7 @@ ARG LLAMA_CPP_PYTHON_VERSION=0.3.1
 ###################################
 # Build llamma-cpp-py for image  #
 ###################################
-FROM quay.io/stewhite/ubi9-cuda-py:0.1.0-devel as llama-cpp-build
+FROM quay.io/stewhite/ubi9-cuda-py:0.1.1-devel as llama-cpp-build
 
 ENV LLAMA_CPP_PYTHON_VERSION=${LLAMA_CPP_PYTHON_VERSION}
 
@@ -39,7 +39,7 @@ USER 1001
 ##################
 # run container #
 ##################
-FROM quay.io/stewhite/ubi9-cuda-py:0.1.0 as runtime-container
+FROM quay.io/stewhite/ubi9-cuda-py:0.1.1 as runtime-container
 
 ENV LLAMA_CPP_PYTHON_VERSION=${LLAMA_CPP_PYTHON_VERSION}
 ENV GGML_CUDA_ENABLE_UNIFIED_MEMORY=1

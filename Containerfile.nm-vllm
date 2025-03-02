@@ -1,0 +1,6 @@
+FROM quay.io/stewhite/ubi9-cuda-py:0.1.1-devel
+
+RUN pip install nm-vllm accelerate modelscope 'bitsandbytes>=0.44.0' timm xformers tensorizer auto-gptq optimum 'autoawq<0.2.8' quanto compressed-tensors deepspeed nm-magic-wand --extra-index-url https://pypi.neuralmagic.com/simple 
+
+EXPOSE 8000
+ENTRYPOINT ["python3", "-m", "vllm.scripts", "serve"]
