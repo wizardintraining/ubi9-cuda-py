@@ -44,16 +44,18 @@ for i in vllm-runtime-0.5.5 vllm-runtime-v0.5 vllm-runtime-0.6.3 vllm-runtime-0.
     podman push $REPO:${i}
 done
 ```
+
+
 ### extra runtimes
 ```sh
 podman build -f Containerfile.llamacpp -t $REPO:llamacpp-runtime-latest && \
  podman push $REPO:llamacpp-runtime-latest
 ```
-~~ ```sh
+~~ sh
  requires nvidia-container-tools
 podman build --device nvidia.com/gpu=all -f Containerfile.ilab -t $REPO:ilab-runtime-latest && \
  podman push $REPO:ilab-runtime-latest
-``` ~~
+~~
 ```sh
 podman build -f Containerfile.nm-vllm -t $REPO:nm-vllm-runtime && \
  podman push $REPO:nm-vllm-runtime
