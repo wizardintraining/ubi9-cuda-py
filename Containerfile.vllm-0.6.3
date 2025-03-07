@@ -1,0 +1,67 @@
+# explicitly set the list to avoid issues with torch 2.2
+# see https://github.com/pytorch/pytorch/pull/123243
+ARG torch_cuda_arch_list='7.0 7.5 8.0 8.6 8.9 9.0+PTX'
+# Override the arch list for flash-attn to reduce the binary size
+ARG vllm_fa_cmake_gpu_arches='80-real;90-real'
+
+FROM quay.io/stewhite/ubi9-cuda-py:0.1.1-devel as vllm-install
+
+ENV CUDA_VERSION 12.4.1
+ENV PYTHON_VERSION 3.11
+
+ARG torch_cuda_arch_list
+ARG vllm_fa_cmake_gpu_arches
+ENV TORCH_CUDA_ARCH_LIST=${torch_cuda_arch_list}
+ENV VLLM_FA_CMAKE_GPU_ARCHES=${vllm_fa_cmake_gpu_arches}
+
+WORKDIR /opt/app-root/src
+
+USER 1001
+
+#COPY --chown=1001:0 requirements-vllm-0.6.3.txt ./requirements.txt
+#Build env setup
+ARG max_jobs=2
+ENV MAX_JOBS=${max_jobs}
+ARG nvcc_threads=8
+ENV NVCC_THREADS=$nvcc_threads
+
+RUN --mount=source=./requirements-vllm-0.6.3.txt,target=./requirements.txt  pip install -r requirements.txt && \
+    pip install vllm==0.6.3.post1 vllm-flash-attn vllm-nccl-cu12 && \
+    # Correction for FIPS mode \
+    sed -i s/md5/sha1/g /opt/app-root/lib64/python3.11/site-packages/triton/runtime/jit.py
+
+
+USER 0
+# Fix permissions to support pip in Openshift environments
+RUN chmod -R g+w /opt/app-root/lib/python3.11/site-packages && \
+    fix-permissions /opt/app-root -P
+USER 1001
+
+
+##################
+# vLLM container #
+##################
+
+FROM quay.io/stewhite/ubi9-cuda-py:0.1.1 as runtime-container
+
+ARG torch_cuda_arch_list
+ARG vllm_fa_cmake_gpu_arches
+ENV TORCH_CUDA_ARCH_LIST=${torch_cuda_arch_list}
+ENV VLLM_FA_CMAKE_GPU_ARCHES=${vllm_fa_cmake_gpu_arches}
+
+WORKDIR /opt/app-root/src
+
+COPY --from=vllm-install --chown=1001:0 /opt/app-root/lib64 /opt/app-root/lib64
+COPY --from=vllm-install /usr/local/cuda/lib64/stubs /usr/local/cuda/lib64/stubs
+COPY --from=vllm-install --chown=1001:0 /opt/app-root/bin /opt/app-root/bin
+COPY --from=vllm-install --chown=1001:0 /opt/app-root/src/.config/vllm/nccl/cu12/libnccl.so.2* /usr/local/lib/libnccl.so.2
+
+# Fix VLLM_NCCL_SO_PATH
+ENV VLLM_NCCL_SO_PATH=/usr/local/lib/libnccl.so.2
+
+USER 1001
+
+EXPOSE 8000
+
+ENTRYPOINT ["vllm", "serve"]
+

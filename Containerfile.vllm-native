@@ -1,0 +1,11 @@
+FROM docker.io/vllm/vllm-openai:latest
+
+# Fix permissions to support pip in Openshift environments
+RUN chmod -R g+w $HOME /vllm-workspace
+
+USER 1001
+
+EXPOSE 8000
+
+ENTRYPOINT ["vllm", "serve"]
+

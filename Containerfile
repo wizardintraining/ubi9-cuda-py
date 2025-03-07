@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/python-311
+FROM registry.access.redhat.com/ubi9/python-311 as runtime
 
 ###################################################################################################
 # CUDA 12.4 Layer, from https://gitlab.com/nvidia/container-images/cuda/-/blob/master/dist/12.4.1 #
@@ -72,4 +72,50 @@ RUN python3 -m venv --upgrade-deps ${APP_ROOT} \
     && chmod -R g+w "${APP_ROOT}"/lib{,64}/python3.$(python3 --version | cut -d '.' -f2)/site-packages \
     && /usr/bin/fix-permissions /opt/app-root -P
 WORKDIR /opt/app-root/src
+USER 1001
+
+
+# CUDA Devel image
+FROM runtime as builder
+
+USER 0
+
+ENV NVIDIA_VISIBLE_DEVICES all
+ENV NVIDIA_DRIVER_CAPABILITIES compute,utility
+
+ENV NV_NVPROF_VERSION 12.4.127-1
+ENV NV_NVPROF_DEV_PACKAGE cuda-nvprof-12-4-${NV_NVPROF_VERSION}
+ENV NV_CUDA_CUDART_DEV_VERSION 12.4.127-1
+ENV NV_NVML_DEV_VERSION 12.4.127-1
+ENV NV_LIBCUBLAS_DEV_VERSION 12.4.5.8-1
+ENV NV_LIBNPP_DEV_VERSION 12.2.5.30-1
+ENV NV_LIBNPP_DEV_PACKAGE libnpp-devel-12-4-${NV_LIBNPP_DEV_VERSION}
+ENV NV_LIBNCCL_DEV_PACKAGE_NAME libnccl-devel
+ENV NV_LIBNCCL_DEV_PACKAGE_VERSION 2.21.5-1
+ENV NV_LIBNCCL_DEV_PACKAGE ${NV_LIBNCCL_DEV_PACKAGE_NAME}-${NV_LIBNCCL_DEV_PACKAGE_VERSION}+cuda12.4
+ENV NV_CUDA_NSIGHT_COMPUTE_VERSION 12.4.1-1
+ENV NV_CUDA_NSIGHT_COMPUTE_DEV_PACKAGE cuda-nsight-compute-12-4-${NV_CUDA_NSIGHT_COMPUTE_VERSION}
+
+RUN dnf install -y --best --nodocs --setopt=install_weak_deps=False \
+    make \
+    openblas-devel \
+    cuda-command-line-tools-12-4-${NV_CUDA_LIB_VERSION} \
+    cuda-libraries-devel-12-4-${NV_CUDA_LIB_VERSION} \
+    cuda-minimal-build-12-4-${NV_CUDA_LIB_VERSION} \
+    cuda-cudart-devel-12-4-${NV_CUDA_CUDART_DEV_VERSION} \
+    ${NV_NVPROF_DEV_PACKAGE} \
+    cuda-nvml-devel-12-4-${NV_NVML_DEV_VERSION} \
+    libcublas-devel-12-4-${NV_LIBCUBLAS_DEV_VERSION} \
+    ${NV_LIBNPP_DEV_PACKAGE} \
+    ${NV_LIBNCCL_DEV_PACKAGE} \
+    ${NV_CUDA_NSIGHT_COMPUTE_DEV_PACKAGE} \
+    && dnf clean all \
+    && rm -rf /var/cache/yum/*
+
+ENV LIBRARY_PATH /usr/local/cuda/lib64/stubs
+
+#############################################
+# End of CUDA 12.4 dev Layer                    #
+#############################################
+
 USER 1001
